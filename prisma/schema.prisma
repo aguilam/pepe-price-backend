@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model MinecraftData {
+  id           Int      @id @default(autoincrement())
+  name         String
+  price        Int
+  quantity     Int
+  seller       String
+  sellerUUID   String
+  minecraft_id String
+  typeRu       String
+  typeId       String
+  x            Int
+  y            Int
+  z            Int
+  recordDate   String // Будет хранить дату вида "02.02.2025"
+  createdAt    DateTime @default(now())
+
+  @@unique([recordDate, x, y, z])
+}
