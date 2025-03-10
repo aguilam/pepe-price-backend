@@ -20,8 +20,8 @@ model MinecraftData {
   x            Int
   y            Int
   z            Int
-  recordDate   String // Будет хранить дату вида "02.02.2025"
+  recordDate   String
   createdAt    DateTime @default(now())
-
+  benefitRation Int
   @@unique([recordDate, x, y, z])
 }

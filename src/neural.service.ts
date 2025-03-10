@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { HfInference } from '@huggingface/inference';
+// import { HfInference } from '@huggingface/inference';
 import { PrismaClient } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
+import Together from 'together-ai';
 
 export type MinecraftData = {
   name: string;
@@ -12,15 +13,11 @@ export type MinecraftData = {
   minecraft_id: string;
   typeId: string;
   typeRu: string;
-  coordinates: {
-    x: number;
-    y: number;
-    z: number;
-  };
 };
+
 @Injectable()
 export class NeuralService {
-  private prisma = new PrismaClient(); // Переносим объявление внутрь класса
+  private prisma = new PrismaClient();
 
   constructor(private readonly httpService: HttpService) {}
 
@@ -31,19 +28,31 @@ export class NeuralService {
     return `${day}.${month}.${year}`;
   }
 
-  async processData(input: string): Promise<MinecraftData> {
-    const client = new HfInference(`${process.env.HUGGINGFACE_API_TOKEN}`);
-    const chatCompletion = await client.chatCompletion({
-      model: 'mistralai/Mistral-7B-Instruct-v0.3',
+  async processData(input: string, apiKey: string): Promise<MinecraftData> {
+    const together = new Together({
+      apiKey: `${apiKey}`,
+    });
+    //const client = new HfInfere nce(  `${process.env.HUGGINGFACE_API_TOKEN_FIRST}`,);
+    const chatCompletion = await together.chat.completions.create({
+      model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
       messages: [
         {
           role: 'user',
           content: input,
         },
       ],
-      max_tokens: 500,
     });
-    console.log(chatCompletion.choices[0].message.content);
+    //const chatCompletion = await client.chatCompletion({
+    //  model: 'mistralai/Mistral-7B-Instruct-v0.3',
+    //  messages: [
+    //    {
+    //      role: 'user',
+    //      content: 'What is the capital of France?',
+    //    },
+    //  ],
+    //  provider: 'hf-inference',
+    //  max_tokens: 500,
+    //});
     if (
       !chatCompletion ||
       !chatCompletion.choices ||
@@ -76,23 +85,24 @@ export class NeuralService {
     }
 
     if (
+      parsedResponse.name === null ||
+      !parsedResponse.name ||
+      parsedResponse.quantity === null ||
+      parsedResponse.price === null ||
       !parsedResponse.quantity ||
-      !parsedResponse.price ||
-      !parsedResponse.quantity === null ||
-      !parsedResponse.price === null
+      !parsedResponse.price
     ) {
       console.error('Ответ от нейросервиса не полный');
       return null;
     }
     return {
-      name: parsedResponse.name,
+      name: parsedResponse.name ?? 'UNKOWN',
       price: Number(parsedResponse.price),
-      seller: parsedResponse.seller,
+      seller: parsedResponse.seller ?? 'UNKOWN',
       quantity: parsedResponse.quantity,
       minecraft_id: parsedResponse.minecraft_id,
       typeRu: parsedResponse.typeRu,
       typeId: parsedResponse.typeId,
-      coordinates: parsedResponse.coordinates || { x: null, y: null, z: null },
     };
   }
   async getMinecraftUUID(playerName: string): Promise<string> {
@@ -135,29 +145,47 @@ export class NeuralService {
 
     // Формируем нужную структуру
     return items.map((item) => ({
-      minecraft_id: item._min.minecraft_id, // Уникальный minecraft_id
-      name: item._min.name, // Имя, связанное с этим minecraft_id
-      count: item._count.minecraft_id, // Количество записей с этим typeId
+      minecraft_id: item._min.minecraft_id,
+      name: item._min.name, // Имя, связанн
+      count: item._count.minecraft_id, // К
     }));
   }
 
-  async getCardsByFilters(
+  async getBarrelsByFilters(
     minecraft_id?: string,
     seller?: string,
     name?: string,
+    orderBy?: any, // Параметр для сортировки
+    page: number = 1,
+    pageSize: number = 10,
   ) {
-    // Динамически формируем `where` для запроса
-    const where: any = {};
+    let items: any[];
 
-    if (minecraft_id) where.minecraft_id = minecraft_id;
-    if (seller) where.seller = { contains: seller, mode: 'insensitive' };
-    if (name) where.name = { contains: name, mode: 'insensitive' };
+    if (name) {
+      // Устанавливаем порог схожести
+      await this.prisma.$queryRaw`SELECT set_limit(0.45);`;
 
-    // Запрос к БД
-    const items = await this.prisma.minecraftData.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-    });
+      items = await this.prisma.$queryRaw`
+        SELECT *
+        FROM "MinecraftData"
+        WHERE
+          (${minecraft_id}::text IS NULL OR "minecraft_id" = ${minecraft_id}::text)
+          AND (${seller}::text IS NULL OR "seller" ILIKE '%' || ${seller}::text || '%')
+          AND "name" % ${name}::text
+        ORDER BY similarity("name", ${name}::text) DESC, "createdAt" DESC;
+      `;
+    } else {
+      // Если fuzzy-поиск не нужен, применяем обычный фильтр
+      const where: any = {};
+      if (minecraft_id) where.minecraft_id = minecraft_id;
+      if (seller) where.seller = { contains: seller, mode: 'insensitive' };
+      if (name) where.name = { contains: name, mode: 'insensitive' };
+
+      items = await this.prisma.minecraftData.findMany({
+        where,
+        orderBy: [...(orderBy ? [orderBy] : []), { createdAt: 'desc' }],
+      });
+    }
 
     // Группировка по координатам (x, y, z)
     const grouped = items.reduce(
@@ -172,7 +200,13 @@ export class NeuralService {
       {} as Record<string, any>,
     );
 
-    return Object.values(grouped);
+    const groupedArray = Object.values(grouped);
+
+    // Пагинация агрегированного результата
+    const start = (page - 1) * pageSize;
+    const paginated = groupedArray.slice(start, start + pageSize);
+
+    return paginated;
   }
 
   async getBarrelHistory(x: number, y: number, z: number) {
@@ -188,5 +222,9 @@ export class NeuralService {
     });
 
     return { items, count }; // Возвращаем историю и количество записей
+  }
+
+  sanitizeText(text: string): string {
+    return text.replace(/[^\x00-\x7F\u0400-\u04FF\-_]|[=+\*\/\\]/g, ' ');
   }
 }
