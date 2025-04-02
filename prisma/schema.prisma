@@ -27,7 +27,7 @@ model MinecraftData {
 
 model BarrelItems {
   id         Int           @id @default(autoincrement())
-  items?      String
+  items      String?
   x          Int
   y          Int
   z          Int
