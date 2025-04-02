@@ -171,7 +171,7 @@ export class NeuralController {
 
     // Если запись уже существует, отклоняем запрос
     if (existingEntry) {
-      return { message: 'Запись уже существует на текущий день.' };
+      return;
     }
 
     // Создаём новую запись
@@ -182,8 +182,9 @@ export class NeuralController {
       z: barrelItems.z,
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const newEntry = await this.prisma.barrelItems.create({ data });
-    return newEntry;
+    return;
   }
 
   @Post()
