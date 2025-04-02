@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { NeuralService } from './neural.service';
 import { PrismaClient } from '@prisma/client';
+import { startOfDay, endOfDay } from 'date-fns';
 
 import {
   CanActivate,
@@ -43,7 +44,6 @@ export type MinecraftDataFull = {
 };
 
 export type Items = {
-  id?: number;
   items: string;
   x: number;
   y: number;
@@ -149,15 +149,41 @@ export class NeuralController {
     return this.neuralService.getBarrelHistory(xNum, yNum, zNum);
   }
   @Post('items')
-  public async postItems(@Body() barrelItems: Items): Promise<Items> {
-    const data: Items = {
-      items: barrelItems.items ?? '',
+  public async postItems(
+    @Body() barrelItems: Items,
+  ): Promise<Items | { message: string }> {
+    // Получаем начало и конец текущего дня
+    const todayStart = startOfDay(new Date());
+    const todayEnd = endOfDay(new Date());
+
+    // Проверяем, есть ли уже запись с таким x, y, z и датой
+    const existingEntry = await this.prisma.barrelItems.findFirst({
+      where: {
+        x: barrelItems.x,
+        y: barrelItems.y,
+        z: barrelItems.z,
+        createdAt: {
+          gte: todayStart, // Начало дня
+          lt: todayEnd, // Конец дня
+        },
+      },
+    });
+
+    // Если запись уже существует, отклоняем запрос
+    if (existingEntry) {
+      return { message: 'Запись уже существует на текущий день.' };
+    }
+
+    // Создаём новую запись
+    const data = {
+      items: barrelItems.items.replace(/[\"\/\\]/g, '') ?? '',
       x: barrelItems.x,
       y: barrelItems.y,
       z: barrelItems.z,
     };
-    await this.prisma.barrelItems.create({ data: data });
-    return data;
+
+    const newEntry = await this.prisma.barrelItems.create({ data });
+    return newEntry;
   }
 
   @Post()
