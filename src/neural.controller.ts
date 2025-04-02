@@ -41,6 +41,14 @@ export type MinecraftDataFull = {
   recordDate: string;
   benefitRation: number;
 };
+
+export type Items = {
+  id?: number;
+  items: string;
+  x: number;
+  y: number;
+  z: number;
+};
 const taskQueue: (() => Promise<void>)[] = []; // Очередь задач
 let isProcessing = false; // Флаг обработки
 @Injectable()
@@ -88,7 +96,7 @@ export class NeuralController {
     return this.neuralService.getTypes();
   }
   // Получение предметов по типу
-  @Get('items')
+  @Get('allitems')
   async getItemsByType(@Query('type') type: string) {
     return this.neuralService.getItemsByType(type);
   }
@@ -140,6 +148,17 @@ export class NeuralController {
     // Вызываем метод для получения данных
     return this.neuralService.getBarrelHistory(xNum, yNum, zNum);
   }
+  @Post('items')
+  public async postItems(@Body() barrelItems: Items): Promise<Items> {
+    const data: Items = {
+      items: barrelItems.items ?? '',
+      x: barrelItems.x,
+      y: barrelItems.y,
+      z: barrelItems.z,
+    };
+    await this.prisma.barrelItems.create({ data: data });
+    return data;
+  }
 
   @Post()
   @UseGuards(TokenGuard)
@@ -156,7 +175,6 @@ export class NeuralController {
       }
     });
   }
-
   private async processQueue() {
     if (isProcessing || taskQueue.length === 0) return;
 

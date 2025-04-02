@@ -15,6 +15,14 @@ export type MinecraftData = {
   typeRu: string;
 };
 
+export type Items = {
+  id?: number;
+  items: string;
+  x: number;
+  y: number;
+  z: number;
+};
+
 @Injectable()
 export class NeuralService {
   private prisma = new PrismaClient();
@@ -204,7 +212,44 @@ export class NeuralService {
 
     // Пагинация агрегированного результата
     const start = (page - 1) * pageSize;
-    const paginated = groupedArray.slice(start, start + pageSize);
+    const paginatedBase = groupedArray.slice(start, start + pageSize);
+
+    // Получаем список уникальных координат из сгруппированных данных
+    const coordinates = paginatedBase.map((item: Items) => ({
+      x: Number(item.x), // Приводим к обычному числу
+      y: Number(item.y),
+      z: Number(item.z),
+      key: `${item.x}_${item.y}_${item.z}`,
+    }));
+
+    // Запрашиваем все BarrelItems для выбранных координат одним запросом
+    const barrelItemsAll = await this.prisma.barrelItems.findMany({
+      where: {
+        OR: coordinates.map((coord) => ({
+          x: Number(coord.x),
+          y: Number(coord.y),
+          z: Number(coord.z),
+        })),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Группируем BarrelItems по ключу координат
+    const barrelItemsGrouped = barrelItemsAll.reduce(
+      (acc, item) => {
+        const key = `${item.x}_${item.y}_${item.z}`;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(item);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+
+    // Добавляем для каждого элемента MinecraftData массив соответствующих BarrelItems
+    const paginated = paginatedBase.map((item: Items) => ({
+      ...item,
+      barrelItems: barrelItemsGrouped[`${item.x}_${item.y}_${item.z}`] || [],
+    }));
 
     return paginated;
   }

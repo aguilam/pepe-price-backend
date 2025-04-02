@@ -8,20 +8,28 @@ datasource db {
 }
 
 model MinecraftData {
-  id           Int      @id @default(autoincrement())
-  name         String
-  price        Int
-  quantity     Int
-  seller       String
-  sellerUUID   String
-  minecraft_id String
-  typeRu       String
-  typeId       String
-  x            Int
-  y            Int
-  z            Int
-  recordDate   String
-  createdAt    DateTime @default(now())
+  id            Int           @id @default(autoincrement())
+  name          String
+  price         Int
+  quantity      Int
+  seller        String
+  sellerUUID    String
+  minecraft_id  String
+  typeRu        String
+  typeId        String
+  x             Int
+  y             Int
+  z             Int
+  recordDate    String
+  createdAt     DateTime      @default(now())
   benefitRation Int
-  @@unique([recordDate, x, y, z])
+}
+
+model BarrelItems {
+  id         Int           @id @default(autoincrement())
+  items?      String
+  x          Int
+  y          Int
+  z          Int
+  createdAt  DateTime      @default(now())
 }

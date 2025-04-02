@@ -22,15 +22,12 @@
     "prisma migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@ai-sdk/deepseek": "^0.1.10",
-    "@ai-sdk/openai": "^1.1.12",
     "@huggingface/inference": "^3.0.0",
     "@nestjs/axios": "^4.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
     "@prisma/client": "^6.2.1",
-    "ai": "^4.1.41",
     "axios": "^1.7.9",
     "huggingface": "^1.4.0",
     "p-limit": "^2.1.0",
