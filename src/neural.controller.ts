@@ -308,9 +308,12 @@ export class NeuralController {
 
     // Создание записи в БД
     if (
-      (await neuralResponse.name) === null ||
-      (await neuralResponse.quantity) === null ||
-      (await neuralResponse.price) === null
+      !neuralResponse.name ||
+      !neuralResponse.quantity ||
+      !neuralResponse.price ||
+      neuralResponse.name === null ||
+      neuralResponse.quantity === null ||
+      neuralResponse.price === null
     ) {
       console.error('Ответ от нейросервиса не полный');
       return null;
