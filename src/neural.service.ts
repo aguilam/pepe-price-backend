@@ -93,10 +93,14 @@ export class NeuralService {
     }
 
     if (
+      !parsedResponse.name ||
+      !parsedResponse.quantity ||
+      !parsedResponse.price ||
       parsedResponse.name === null ||
       parsedResponse.quantity === null ||
       parsedResponse.price === null
     ) {
+      console.log(parsedResponse);
       console.error('Ответ от нейросервиса не полный');
       return null;
     }
