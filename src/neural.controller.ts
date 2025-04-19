@@ -303,34 +303,34 @@ export class NeuralController {
 
     // Получение UUID продавца
     const UUIDMinecraft: string = await this.neuralService.getMinecraftUUID(
-      (await neuralResponse)?.seller ?? 'UNKOWN',
+      (await neuralResponse?.seller) ?? 'UNKOWN',
     );
 
     // Создание записи в БД
     if (
-      (await neuralResponse).name === null ||
-      (await neuralResponse).quantity === null ||
-      (await neuralResponse).price === null
+      (await neuralResponse.name) === null ||
+      (await neuralResponse.quantity) === null ||
+      (await neuralResponse.price) === null
     ) {
       console.error('Ответ от нейросервиса не полный');
       return null;
     } else {
       const data: MinecraftDataFull = {
-        name: (await neuralResponse).name,
-        price: Number((await neuralResponse).price),
-        seller: (await neuralResponse).seller ?? 'UNKNOWN',
+        name: await neuralResponse.name,
+        price: Number(await neuralResponse.price),
+        seller: (await neuralResponse.seller) ?? 'UNKNOWN',
         sellerUUID: UUIDMinecraft ?? 'UNKNOWN',
-        quantity: Number((await neuralResponse).quantity),
-        minecraft_id: (await neuralResponse).minecraft_id,
-        typeRu: (await neuralResponse).typeRu,
-        typeId: (await neuralResponse).typeId,
+        quantity: Number(await neuralResponse.quantity),
+        minecraft_id: await neuralResponse.minecraft_id,
+        typeRu: await neuralResponse.typeRu,
+        typeId: await neuralResponse.typeId,
         x: x,
         y: y,
         z: z,
         recordDate: todayString,
         benefitRation:
-          Number((await neuralResponse).quantity) /
-          Number((await neuralResponse).price),
+          Number(await neuralResponse.quantity) /
+          Number(await neuralResponse.price),
       };
       return data;
     }
