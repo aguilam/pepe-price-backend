@@ -224,9 +224,11 @@ export class NeuralController {
 
     for (let i = 0; i < slicedActions.length; i++) {
       const apiKey =
-        i % 2 === 0 ? process.env.OPENROUTER_KEY : process.env.OPENROUTER_KEY;
+        i % 2 === 0
+          ? process.env.TOGETHER_API_KEY_FIRST
+          : process.env.TOGETHER_API_KEY_SECOND;
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 61000)); // Задержка между батчами
 
       await Promise.all(
         slicedActions[i].map(async (Action: Data, index) => {
@@ -279,13 +281,6 @@ export class NeuralController {
 
     // Выбираем тот ответ, который удовлетворяет условиям валидности
 
-    if (!neuralResponse) {
-      console.warn(
-        'Нейросервисы не вернули корректный результат, обработка запроса пропущена.',
-      );
-      return null;
-    }
-
     // Проверка на наличие уже существующих данных с такими же координатами и датой
     const existingData = await this.prisma.minecraftData.findFirst({
       where: {
@@ -310,13 +305,9 @@ export class NeuralController {
 
     // Создание записи в БД
     if (
-      (await neuralResponse).name === 'UNKOWN' ||
       (await neuralResponse).name === null ||
       (await neuralResponse).quantity === null ||
-      (await neuralResponse).price === null ||
-      !(await neuralResponse).name ||
-      !(await neuralResponse).quantity ||
-      !(await neuralResponse).price
+      (await neuralResponse).price === null
     ) {
       console.error('Ответ от нейросервиса не полный');
       return null;
