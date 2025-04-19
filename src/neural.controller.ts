@@ -222,44 +222,47 @@ export class NeuralController {
     const slicedActions = this.SliceArray(actions, batchSize);
     const resultData: MinecraftDataFull[] = [];
 
+    // 1) Собираем все ключи в массив:
+    // Для 3 ключей:
+    const apiKeys = [
+      process.env.TOGETHER_API_KEY_FIRST!,
+      process.env.TOGETHER_API_KEY_SECOND!,
+      process.env.TOGETHER_API_KEY_THIRD!,
+    ];
+
     for (let i = 0; i < slicedActions.length; i++) {
-      const apiKey =
-        i % 2 === 0
-          ? process.env.TOGETHER_API_KEY_FIRST
-          : process.env.TOGETHER_API_KEY_SECOND;
+      // 2) Выбираем ключ по индексу батча:
+      const apiKey = apiKeys[i % apiKeys.length];
 
-      await new Promise((resolve) => setTimeout(resolve, 61000)); // Задержка между батчами
+      // 3) Далаем паузу между батчами
+      await new Promise((resolve) => setTimeout(resolve, 62000));
 
+      // 4) Обрабатываем действия батча параллельно, с «разгоном» между ними
       await Promise.all(
-        slicedActions[i].map(async (Action: Data, index) => {
-          await new Promise((resolve) => setTimeout(resolve, 1100 * index));
-          const data: MinecraftDataFull = await this.processAction(
-            Action,
-            apiKey,
-          );
+        slicedActions[i].map(async (action, index) => {
+          await new Promise((resolve) => setTimeout(resolve, 2000 * index));
+          const data = await this.processAction(action, apiKey);
           resultData.push(data);
         }),
       );
 
+      // 5) Как только накопили хотя бы batchSize, сохраняем в БД и сбрасываем буфер
       if (resultData.length >= batchSize) {
-        const filteredData = resultData.filter((item) => item !== null);
-        if (filteredData.length > 0) {
-          await this.prisma.minecraftData.createMany({ data: filteredData });
-          console.log('Отправлено:', filteredData.length, 'записей');
+        const filtered = resultData.filter((item) => item !== null);
+        if (filtered.length) {
+          await this.prisma.minecraftData.createMany({ data: filtered });
+          console.log('Отправлено:', filtered.length, 'записей');
         }
         resultData.length = 0;
       }
     }
 
+    // 6) Обработка «хвоста», если после цикла осталось что-то несохранённое
     if (resultData.length > 0) {
-      const filteredData = resultData.filter((item) => item !== null);
-      if (filteredData.length > 0) {
-        await this.prisma.minecraftData.createMany({ data: filteredData });
-        console.log(
-          'Отправлена неполная пачка:',
-          filteredData.length,
-          'записей',
-        );
+      const filtered = resultData.filter((item) => item !== null);
+      if (filtered.length) {
+        await this.prisma.minecraftData.createMany({ data: filtered });
+        console.log('Отправлена неполная пачка:', filtered.length, 'записей');
       }
     } else {
       console.log('Нет данных для отправки');
