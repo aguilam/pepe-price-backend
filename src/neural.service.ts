@@ -42,13 +42,14 @@ export class NeuralService {
     });
     //const client = new HfInfere nce(  `${process.env.HUGGINGFACE_API_TOKEN_FIRST}`,);
     const chatCompletion = await together.chat.completions.create({
-      model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+      model: 'meta-llama/Llama-3.3-70B-Instruct-Turbo-Free',
       messages: [
         {
           role: 'user',
           content: input,
         },
       ],
+      max_tokens: 9000,
     });
     //const chatCompletion = await client.chatCompletion({
     //  model: 'mistralai/Mistral-7B-Instruct-v0.3',
