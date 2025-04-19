@@ -224,11 +224,9 @@ export class NeuralController {
 
     for (let i = 0; i < slicedActions.length; i++) {
       const apiKey =
-        i % 2 === 0
-          ? process.env.TOGETHER_API_KEY_FIRST
-          : process.env.TOGETHER_API_KEY_SECOND;
+        i % 2 === 0 ? process.env.OPENROUTER_KEY : process.env.OPENROUTER_KEY;
 
-      await new Promise((resolve) => setTimeout(resolve, 61000)); // Задержка между батчами
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       await Promise.all(
         slicedActions[i].map(async (Action: Data, index) => {

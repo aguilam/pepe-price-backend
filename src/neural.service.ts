@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-// import { HfInference } from '@huggingface/inference';
 import { PrismaClient } from '@prisma/client';
 import { firstValueFrom } from 'rxjs';
-import Together from 'together-ai';
+//import Together from 'together-ai';
+import OpenAI from 'openai';
 
 export type MinecraftData = {
   name: string;
@@ -37,12 +37,24 @@ export class NeuralService {
   }
 
   async processData(input: string, apiKey: string): Promise<MinecraftData> {
-    const together = new Together({
+    //const together = new Together({
+    //  apiKey: `${apiKey}`,
+    //});
+    //const chatCompletion = await together.chat.completions.create({
+    //  model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+    //  messages: [
+    //    {
+    //      role: 'user',
+    //      content: input,
+    //    },
+    //  ],
+    //});
+    const openai = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
       apiKey: `${apiKey}`,
     });
-    //const client = new HfInfere nce(  `${process.env.HUGGINGFACE_API_TOKEN_FIRST}`,);
-    const chatCompletion = await together.chat.completions.create({
-      model: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free',
+    const chatCompletion = await openai.chat.completions.create({
+      model: 'google/gemini-2.0-flash-exp:free',
       messages: [
         {
           role: 'user',
@@ -50,17 +62,7 @@ export class NeuralService {
         },
       ],
     });
-    //const chatCompletion = await client.chatCompletion({
-    //  model: 'mistralai/Mistral-7B-Instruct-v0.3',
-    //  messages: [
-    //    {
-    //      role: 'user',
-    //      content: 'What is the capital of France?',
-    //    },
-    //  ],
-    //  provider: 'hf-inference',
-    //  max_tokens: 500,
-    //});
+
     if (
       !chatCompletion ||
       !chatCompletion.choices ||
