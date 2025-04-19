@@ -63,19 +63,9 @@ export class NeuralService {
       ],
     });
 
-    if (
-      !chatCompletion ||
-      !chatCompletion.choices ||
-      !chatCompletion.choices[0] ||
-      !chatCompletion.choices[0].message ||
-      !chatCompletion.choices[0].message.content
-    ) {
-      console.error(
-        'Ответ от нейросервиса пустой или имеет неверную структуру.',
-      );
-      return null;
-    }
     const response = chatCompletion.choices[0].message.content;
+    console.log(response);
+    console.log(chatCompletion.choices[0].message);
     const jsonStart = response.indexOf('{');
     const jsonEnd = response.lastIndexOf('}');
 
